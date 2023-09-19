@@ -1,5 +1,5 @@
-DROP DATABASE IF EXISTS sharepulse_test;
-DROP DATABASE IF EXISTS sharepulse;
+DROP DATABASE IF EXISTS share_pulse_test;
+DROP DATABASE IF EXISTS share_pulse;
 
-CREATE DATABASE sharepulse_test;
-CREATE DATABASE sharepulse;
+CREATE DATABASE share_pulse_test;
+CREATE DATABASE share_pulse;

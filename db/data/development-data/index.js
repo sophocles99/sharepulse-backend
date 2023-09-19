@@ -1,3 +1,4 @@
+import profileData from "./profiles.js";
 import userData from "./users.js";
 
-export default { userData };
+export default { profileData, userData };
