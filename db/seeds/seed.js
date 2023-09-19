@@ -2,9 +2,12 @@ import bcrypt from "bcrypt";
 import format from "pg-format";
 import db from "../connection.js";
 
-const seed = ({ userData, profileData, portfolioData }) => {
+const seed = ({ userData, profileData, portfolioData, cashData }) => {
   return db
-    .query(`DROP TABLE IF EXISTS portfolios;`)
+    .query(`DROP TABLE IF EXISTS cash;`)
+    .then(() => {
+      return db.query(`DROP TABLE IF EXISTS portfolios;`);
+    })
     .then(() => {
       return db.query(`DROP TABLE IF EXISTS profiles;`);
     })
@@ -40,6 +43,14 @@ const seed = ({ userData, profileData, portfolioData }) => {
           portfolio_id SERIAL PRIMARY KEY,
           user_id INT REFERENCES users ON DELETE CASCADE,
           name VARCHAR(255) NOT NULL
+        );`);
+    })
+    .then(() => {
+      return db.query(`
+        CREATE TABLE cash (
+          cash_id SERIAL PRIMARY KEY,
+          user_id INT REFERENCES users ON DELETE CASCADE UNIQUE,
+          amount NUMERIC
         );`);
     })
     .then(() => {
@@ -113,6 +124,20 @@ const seed = ({ userData, profileData, portfolioData }) => {
         portfolioData.map(({ user_id, name }) => [user_id, name])
       );
       return db.query(insertPortfoliosQueryStr);
+    })
+    .then(() => {
+      const insertCashQueryStr = format(
+        `
+        INSERT INTO cash (
+          user_id,
+          amount
+        ) VALUES %L;`,
+        cashData.map(({ user_id, amount }) => {
+          console.log(amount);
+          return [user_id, amount];
+        })
+      );
+      return db.query(insertCashQueryStr);
     });
 };
 
