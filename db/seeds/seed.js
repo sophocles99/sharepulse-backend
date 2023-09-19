@@ -2,7 +2,6 @@ import format from "pg-format";
 import db from "../connection.js";
 
 const seed = ({ userData }) => {
-  console.log(userData.map(user => user.postcode.length));
   return db
     .query(`DROP TABLE IF EXISTS users;`)
     .then(() => {
