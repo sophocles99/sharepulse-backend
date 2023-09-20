@@ -9,6 +9,8 @@ const getQuotes = async () => {
   const page = await browser.newPage();
 
   await page.goto("http://quotes.toscrape.com/", {
-    waitUntil: "documentloaded",
+    waitUntil: "domcontentloaded",
   });
 };
+
+getQuotes();
