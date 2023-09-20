@@ -133,7 +133,6 @@ const seed = ({ userData, profileData, portfolioData, cashData }) => {
           amount
         ) VALUES %L;`,
         cashData.map(({ user_id, amount }) => {
-          console.log(amount);
           return [user_id, amount];
         })
       );
