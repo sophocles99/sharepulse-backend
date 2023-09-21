@@ -1,8 +1,15 @@
 import bcrypt from "bcrypt";
-import format from "pg-format";
 import db from "../connection.js";
+import insertDataIntoDb from "./utils/insert-data-into-db.js";
 
-const seed = ({ userData, profileData, portfolioData, cashHoldingData, shareData, portfolioHoldingData }) => {
+const seed = ({
+  userData,
+  profileData,
+  portfolioData,
+  cashHoldingData,
+  shareData,
+  portfolioHoldingData,
+}) => {
   return db
     .query(`DROP TABLE IF EXISTS portfolio_holdings;`)
     .then(() => {
@@ -80,144 +87,33 @@ const seed = ({ userData, profileData, portfolioData, cashHoldingData, shareData
           portfolio_id INT REFERENCES portfolios ON DELETE RESTRICT,
           share_id INT REFERENCES shares ON DELETE RESTRICT,
           quantity NUMERIC(11, 4)
-        )`)
+        )`);
     })
     .then(() => {
       const userHashPromises = userData.map(async ({ email, password }) => ({
         email,
-        hashedPassword: await bcrypt.hash(password, 12),
+        password: await bcrypt.hash(password, 12),
       }));
       return Promise.all(userHashPromises);
     })
     .then((usersWithHashedPasswords) => {
-      const insertUsersQueryStr = format(
-        `
-        INSERT INTO users (
-          email,
-          password
-        ) VALUES %L;`,
-        usersWithHashedPasswords.map(({ email, hashedPassword }) => [
-          email,
-          hashedPassword,
-        ])
-      );
-      return db.query(insertUsersQueryStr);
+      return insertDataIntoDb(db, "users", usersWithHashedPasswords);
     })
     .then(() => {
-      const insertProfilesQueryStr = format(
-        `
-        INSERT INTO profiles (
-          user_id,
-          first_name,
-          last_name,
-          birth_date,
-          address_1,
-          address_2,
-          address_3,
-          address_4,
-          postcode
-        ) VALUES %L;`,
-        profileData.map(
-          ({
-            user_id,
-            first_name,
-            last_name,
-            birth_date,
-            address_1,
-            address_2,
-            address_3,
-            address_4,
-            postcode,
-          }) => [
-            user_id,
-            first_name,
-            last_name,
-            birth_date,
-            address_1,
-            address_2,
-            address_3,
-            address_4,
-            postcode,
-          ]
-        )
-      );
-      return db.query(insertProfilesQueryStr);
+      return insertDataIntoDb(db, "profiles", profileData);
     })
     .then(() => {
-      const insertPortfoliosQueryStr = format(
-        `
-        INSERT INTO portfolios (
-          user_id,
-          name
-        ) VALUES %L;`,
-        portfolioData.map(({ user_id, name }) => [user_id, name])
-      );
-      return db.query(insertPortfoliosQueryStr);
+      return insertDataIntoDb(db, "portfolios", portfolioData);
     })
     .then(() => {
-      const insertCashHoldingsQueryStr = format(
-        `
-        INSERT INTO cash_holdings (
-          user_id,
-          amount
-        ) VALUES %L;`,
-        cashHoldingData.map(({ user_id, amount }) => {
-          return [user_id, amount];
-        })
-      );
-      return db.query(insertCashHoldingsQueryStr);
+      return insertDataIntoDb(db, "cash_holdings", cashHoldingData);
     })
     .then(() => {
-      const insertSharesQueryStr = format(
-        `
-        INSERT INTO shares (
-          symbol,
-          company_name,
-          description,
-          exchange,
-          currency,
-          country,
-          sector,
-          industry
-        ) VALUES %L;`,
-        shareData.map(
-          ({
-            symbol,
-            company_name,
-            description,
-            exchange,
-            currency,
-            country,
-            sector,
-            industry,
-          }) => [
-            symbol,
-            company_name,
-            description,
-            exchange,
-            currency,
-            country,
-            sector,
-            industry,
-          ]
-        )
-      );
-      return db.query(insertSharesQueryStr);
+      return insertDataIntoDb(db, "shares", shareData);
     })
     .then(() => {
-      const insertPortfolioHoldingsQueryStr = format(
-        `
-        INSERT INTO portfolio_holdings (
-          portfolio_id,
-          share_id,
-          quantity
-        ) VALUES %L;`,
-        portfolioHoldingData.map(({ portfolio_id, share_id, quantity }) => {
-          return [portfolio_id, share_id, quantity];
-        })
-      );
-      return db.query(insertPortfolioHoldingsQueryStr);
-    })
+      return insertDataIntoDb(db, "portfolio_holdings", portfolioHoldingData);
+    });
 };
 
 export default seed;
