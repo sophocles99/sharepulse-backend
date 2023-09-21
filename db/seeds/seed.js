@@ -11,7 +11,10 @@ const seed = ({
   portfolioHoldingData,
 }) => {
   return db
-    .query(`DROP TABLE IF EXISTS portfolio_holdings;`)
+    .query(`DROP TABLE IF EXISTS transactions;`)
+    .then(() => {
+      return db.query(`DROP TABLE IF EXISTS portfolio_holdings;`);
+    })
     .then(() => {
       return db.query(`DROP TABLE IF EXISTS shares;`);
     })
@@ -90,14 +93,29 @@ const seed = ({
         )`);
     })
     .then(() => {
+      return db.query(`
+        CREATE TABLE transactions (
+          transaction_id SERIAL PRIMARY KEY,
+          user_id INT NOT NULL REFERENCES users ON DELETE RESTRICT,
+          type CHAR(1) NOT NULL CHECK (type IN ('D', 'W', 'B', 'S')),
+          date_time TIMESTAMP NOT NULL,
+          cash_holding_id INT NOT NULL REFERENCES cash_holdings ON DELETE RESTRICT,
+          share_id INT REFERENCES shares ON DELETE RESTRICT,
+          portfolio_id INT REFERENCES portfolios ON DELETE RESTRICT,
+          quantity NUMERIC(11, 4),
+          unit_price NUMERIC(11, 4),
+          total_amount NUMERIC(11, 4)
+        )`);
+    })
+    .then(() => {
       const userHashPromises = userData.map(async ({ email, password }) => ({
         email,
         password: await bcrypt.hash(password, 12),
       }));
       return Promise.all(userHashPromises);
     })
-    .then((usersWithHashedPasswords) => {
-      return insertDataIntoDb(db, "users", usersWithHashedPasswords);
+    .then((userDataHashedPasswords) => {
+      return insertDataIntoDb(db, "users", userDataHashedPasswords);
     })
     .then(() => {
       return insertDataIntoDb(db, "profiles", profileData);
