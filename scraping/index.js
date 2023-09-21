@@ -8,9 +8,14 @@ const getQuotes = async () => {
 
   const page = await browser.newPage();
 
-  await page.goto("http://quotes.toscrape.com/", {
-    waitUntil: "domcontentloaded",
-  });
+  // http://quotes.toscrape.com/
+
+  await page.goto(
+    "https://www.tradingview.com/markets/stocks-united-kingdom/market-movers-all-stocks/",
+    {
+      waitUntil: "domcontentloaded",
+    }
+  );
 };
 
 getQuotes();
