@@ -104,7 +104,16 @@ const seed = ({
           portfolio_id INT REFERENCES portfolios ON DELETE RESTRICT,
           quantity NUMERIC(11, 4),
           unit_price NUMERIC(11, 4),
-          total_amount NUMERIC(11, 4)
+          total_amount NUMERIC(11, 4) NOT NULL,
+          CONSTRAINT share_id_null_for_deposit_or_withdrawal CHECK ((type = 'D' OR type = 'W') AND share_id IS NULL),
+          CONSTRAINT share_id_required_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND share_id IS NOT NULL),
+          CONSTRAINT portfolio_id_null_for_deposit_or_withdrawal CHECK ((type = 'D' OR type = 'W') AND portfolio_id IS NULL),
+          CONSTRAINT portfolio_id_required_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND portfolio_id IS NOT NULL),
+          CONSTRAINT quantity_null_for_deposit_or_withdrawal CHECK ((type = 'D' OR type = 'W') AND quantity IS NULL),
+          CONSTRAINT quantity_required_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND quantity IS NOT NULL),
+          CONSTRAINT unit_price_null_for_deposit_or_withdrawal CHECK ((type = 'D' OR type = 'W') AND unit_price IS NULL),
+          CONSTRAINT unit_price_required_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND unit_price IS NOT NULL),
+          CONSTRAINT correct_total_amount_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND total_amount = quantity * unit_price)
         )`);
     })
     .then(() => {
