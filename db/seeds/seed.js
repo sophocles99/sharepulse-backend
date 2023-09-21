@@ -2,9 +2,12 @@ import bcrypt from "bcrypt";
 import format from "pg-format";
 import db from "../connection.js";
 
-const seed = ({ userData, profileData, portfolioData, cashData }) => {
+const seed = ({ userData, profileData, portfolioData, cashHoldingData, shareData }) => {
   return db
-    .query(`DROP TABLE IF EXISTS cash;`)
+    .query(`DROP TABLE IF EXISTS shares;`)
+    .then(() => {
+      return db.query(`DROP TABLE IF EXISTS cash_holdings;`);
+    })
     .then(() => {
       return db.query(`DROP TABLE IF EXISTS portfolios;`);
     })
@@ -47,11 +50,25 @@ const seed = ({ userData, profileData, portfolioData, cashData }) => {
     })
     .then(() => {
       return db.query(`
-        CREATE TABLE cash (
-          cash_id SERIAL PRIMARY KEY,
+        CREATE TABLE cash_holdings (
+          cash_holding_id SERIAL PRIMARY KEY,
           user_id INT REFERENCES users ON DELETE CASCADE UNIQUE,
           amount NUMERIC
         );`);
+    })
+    .then(() => {
+      return db.query(`
+        CREATE TABLE shares (
+          share_id SERIAL PRIMARY KEY,
+          symbol VARCHAR(10) UNIQUE,
+          company_name VARCHAR(255),
+          description TEXT,
+          exchange VARCHAR(10),
+          currency VARCHAR(3),
+          country VARCHAR(50),
+          sector VARCHAR(50),
+          industry VARCHAR(50)
+        )`);
     })
     .then(() => {
       const userHashPromises = userData.map(async ({ email, password }) => ({
@@ -126,17 +143,54 @@ const seed = ({ userData, profileData, portfolioData, cashData }) => {
       return db.query(insertPortfoliosQueryStr);
     })
     .then(() => {
-      const insertCashQueryStr = format(
+      const insertCashHoldingsQueryStr = format(
         `
-        INSERT INTO cash (
+        INSERT INTO cash_holdings (
           user_id,
           amount
         ) VALUES %L;`,
-        cashData.map(({ user_id, amount }) => {
+        cashHoldingData.map(({ user_id, amount }) => {
           return [user_id, amount];
         })
       );
-      return db.query(insertCashQueryStr);
+      return db.query(insertCashHoldingsQueryStr);
+    })
+    .then(() => {
+      const insertSharesQueryStr = format(
+        `
+        INSERT INTO shares (
+          symbol,
+          company_name,
+          description,
+          exchange,
+          currency,
+          country,
+          sector,
+          industry
+        ) VALUES %L;`,
+        shareData.map(
+          ({
+            symbol,
+            company_name,
+            description,
+            exchange,
+            currency,
+            country,
+            sector,
+            industry,
+          }) => [
+            symbol,
+            company_name,
+            description,
+            exchange,
+            currency,
+            country,
+            sector,
+            industry,
+          ]
+        )
+      );
+      return db.query(insertSharesQueryStr);
     });
 };
 
