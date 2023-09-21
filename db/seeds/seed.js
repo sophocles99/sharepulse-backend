@@ -2,9 +2,12 @@ import bcrypt from "bcrypt";
 import format from "pg-format";
 import db from "../connection.js";
 
-const seed = ({ userData, profileData, portfolioData, cashHoldingData, shareData }) => {
+const seed = ({ userData, profileData, portfolioData, cashHoldingData, shareData, portfolioHoldingData }) => {
   return db
-    .query(`DROP TABLE IF EXISTS shares;`)
+    .query(`DROP TABLE IF EXISTS portfolio_holdings;`)
+    .then(() => {
+      return db.query(`DROP TABLE IF EXISTS shares;`);
+    })
     .then(() => {
       return db.query(`DROP TABLE IF EXISTS cash_holdings;`);
     })
@@ -53,7 +56,7 @@ const seed = ({ userData, profileData, portfolioData, cashHoldingData, shareData
         CREATE TABLE cash_holdings (
           cash_holding_id SERIAL PRIMARY KEY,
           user_id INT REFERENCES users ON DELETE CASCADE UNIQUE,
-          amount NUMERIC
+          amount NUMERIC(9, 2)
         );`);
     })
     .then(() => {
@@ -69,6 +72,15 @@ const seed = ({ userData, profileData, portfolioData, cashHoldingData, shareData
           sector VARCHAR(50),
           industry VARCHAR(50)
         )`);
+    })
+    .then(() => {
+      return db.query(`
+        CREATE TABLE portfolio_holdings (
+          portfolio_holdings_id SERIAL PRIMARY KEY,
+          portfolio_id INT REFERENCES portfolios ON DELETE RESTRICT,
+          share_id INT REFERENCES shares ON DELETE RESTRICT,
+          quantity NUMERIC(11, 4)
+        )`)
     })
     .then(() => {
       const userHashPromises = userData.map(async ({ email, password }) => ({
@@ -191,7 +203,21 @@ const seed = ({ userData, profileData, portfolioData, cashHoldingData, shareData
         )
       );
       return db.query(insertSharesQueryStr);
-    });
+    })
+    .then(() => {
+      const insertPortfolioHoldingsQueryStr = format(
+        `
+        INSERT INTO portfolio_holdings (
+          portfolio_id,
+          share_id,
+          quantity
+        ) VALUES %L;`,
+        portfolioHoldingData.map(({ portfolio_id, share_id, quantity }) => {
+          return [portfolio_id, share_id, quantity];
+        })
+      );
+      return db.query(insertPortfolioHoldingsQueryStr);
+    })
 };
 
 export default seed;

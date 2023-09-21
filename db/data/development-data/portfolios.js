@@ -38,4 +38,5 @@ export default [
   { user_id: 43, name: "Savings Haven" },
   { user_id: 22, name: "Golden Opportunities" },
   { user_id: 37, name: "Future Security" },
+  { user_id: 50, name: "Green Investments" },
 ];
