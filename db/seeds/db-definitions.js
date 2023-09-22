@@ -32,7 +32,7 @@ export const createPortfoliosStr = `
 export const createCashHoldingsStr = `
   CREATE TABLE cash_holdings (
     user_id INT PRIMARY KEY REFERENCES users ON DELETE RESTRICT,
-    amount NUMERIC(9, 2)
+    amount NUMERIC(9, 2) NOT NULL DEFAULT 0
   );`;
 
 export const createSharesStr = `
@@ -59,7 +59,7 @@ export const createPortfolioHoldingsStr = `
 // transaction types as follows:
 // cash transaction: D - deposit, W - withdrawal
 // share trade: B - buy, S - sell
-
+// total_amount is always a positive number
 export const createTransactionsStr = `
   CREATE TABLE transactions (
     transaction_id SERIAL PRIMARY KEY,
@@ -101,8 +101,35 @@ export const createTransactionTriggersStr = `
     END;
   $$ LANGUAGE plpgsql;
 
-  CREATE TRIGGER validate_user_id_portfolio_id
+  CREATE TRIGGER check_user_owns_portfolio
     BEFORE INSERT ON transactions
     FOR EACH ROW
     EXECUTE FUNCTION check_user_owns_portfolio();
+
+
+  CREATE OR REPLACE FUNCTION update_cash_holdings() RETURNS TRIGGER AS $$
+    BEGIN
+      IF (NEW.type = 'D' OR NEW.type = 'S') THEN
+        UPDATE cash_holdings
+        SET amount = amount + NEW.total_amount
+        WHERE user_id = NEW.user_id;
+        RETURN NEW;
+      END IF;
+      IF (NEW.type = 'W' OR NEW.type = 'B') THEN
+        IF (SELECT amount FROM cash_holdings WHERE user_id = NEW.user_id) - NEW.total_amount < 0 THEN
+          RAISE EXCEPTION 'insufficient funds for transaction';
+        END IF;
+        UPDATE cash_holdings
+        SET amount = amount - NEW.total_amount
+        WHERE user_id = NEW.user_id;
+        RETURN NEW;
+      END IF;
+      RAISE EXCEPTION 'bingo bongo wrong transaction type';
+    END;
+  $$ LANGUAGE plpgsql;
+
+  CREATE TRIGGER update_cash_holdings
+    BEFORE INSERT ON transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_cash_holdings();
   `;
