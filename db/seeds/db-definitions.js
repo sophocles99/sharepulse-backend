@@ -6,6 +6,7 @@ export const createUsersStr = `
     last_login TIMESTAMP DEFAULT NULL
   )`;
 
+// profiles table has one-to-one relationship with users table
 export const createProfilesStr = `
   CREATE TABLE profiles (
     user_id INT PRIMARY KEY REFERENCES users ON DELETE RESTRICT,
@@ -19,13 +20,15 @@ export const createProfilesStr = `
     postcode VARCHAR(8) NOT NULL
   );`;
 
+// one user can have multiple portfolios
 export const createPortfoliosStr = `
   CREATE TABLE portfolios (
     portfolio_id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users ON DELETE CASCADE,
+    user_id INT REFERENCES users ON DELETE RESTRICT,
     name VARCHAR(255) NOT NULL
   );`;
 
+// currently only one cash holding per user, in GBP
 export const createCashHoldingsStr = `
   CREATE TABLE cash_holdings (
     user_id INT PRIMARY KEY REFERENCES users ON DELETE RESTRICT,
@@ -46,12 +49,16 @@ export const createSharesStr = `
   );`;
 
 export const createPortfolioHoldingsStr = `
-    CREATE TABLE portfolio_holdings (
-      portfolio_holdings_id SERIAL PRIMARY KEY,
-      portfolio_id INT REFERENCES portfolios ON DELETE RESTRICT,
-      share_id INT REFERENCES shares ON DELETE RESTRICT,
-      quantity NUMERIC(11, 4)
-    );`;
+  CREATE TABLE portfolio_holdings (
+    portfolio_holdings_id SERIAL PRIMARY KEY,
+    portfolio_id INT REFERENCES portfolios ON DELETE RESTRICT,
+    share_id INT REFERENCES shares ON DELETE RESTRICT,
+    quantity NUMERIC(11, 4)
+  );`;
+
+// transaction types as follows:
+// cash transaction: D - deposit, W - withdrawal
+// share trade: B - buy, S - sell
 
 export const createTransactionsStr = `
   CREATE TABLE transactions (
@@ -64,6 +71,7 @@ export const createTransactionsStr = `
     quantity NUMERIC(11, 4),
     unit_price NUMERIC(11, 4),
     total_amount NUMERIC(11, 4) NOT NULL,
+
     CONSTRAINT "share_id: null for cash transaction, required for trade"
       CHECK (((type = 'D' OR type = 'W') AND share_id IS NULL) OR
         ((type = 'B' OR type = 'S') AND share_id IS NOT NULL)),
@@ -80,3 +88,21 @@ export const createTransactionsStr = `
       CHECK (((type = 'B' OR type = 'S') AND total_amount = ROUND(quantity * unit_price, 4)) OR
         (type = 'D' OR type = 'W'))
   );`;
+
+export const createTransactionTriggersStr = `
+  CREATE OR REPLACE FUNCTION check_user_owns_portfolio() RETURNS TRIGGER AS $$
+    BEGIN
+      IF (NEW.type = 'B' OR NEW.type = 'S') AND
+        (SELECT COUNT(*) FROM portfolios
+        WHERE portfolio_id = NEW.portfolio_id AND user_id = NEW.user_id) = 0 THEN
+        RAISE EXCEPTION 'user_id does not match portfolio_id';
+      END IF;      
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql;
+
+  CREATE TRIGGER validate_user_id_portfolio_id
+    BEFORE INSERT ON transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION check_user_owns_portfolio();
+  `;

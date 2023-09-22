@@ -8,6 +8,7 @@ import {
   createSharesStr,
   createPortfolioHoldingsStr,
   createTransactionsStr,
+  createTransactionTriggersStr
 } from "./db-definitions.js";
 import insertDataIntoDb from "./utils/insert-data-into-db.js";
 
@@ -60,6 +61,9 @@ const seed = ({
     })
     .then(() => {
       return db.query(createTransactionsStr);
+    })
+    .then(() => {
+      return db.query(createTransactionTriggersStr);
     })
     .then(() => {
       const userHashPromises = userData.map(async ({ email, password }) => ({
