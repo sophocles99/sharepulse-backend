@@ -9,6 +9,7 @@ const seed = ({
   cashHoldingData,
   shareData,
   portfolioHoldingData,
+  transactionData,
 }) => {
   return db
     .query(`DROP TABLE IF EXISTS transactions;`)
@@ -42,7 +43,7 @@ const seed = ({
     .then(() => {
       return db.query(`
         CREATE TABLE profiles (
-          user_id INT PRIMARY KEY REFERENCES users ON DELETE CASCADE,
+          user_id INT PRIMARY KEY REFERENCES users ON DELETE RESTRICT,
           first_name VARCHAR(255) NOT NULL,
           last_name VARCHAR(255) NOT NULL,
           birth_date DATE NOT NULL,
@@ -64,8 +65,7 @@ const seed = ({
     .then(() => {
       return db.query(`
         CREATE TABLE cash_holdings (
-          cash_holding_id SERIAL PRIMARY KEY,
-          user_id INT REFERENCES users ON DELETE CASCADE UNIQUE,
+          user_id INT PRIMARY KEY REFERENCES users ON DELETE RESTRICT,
           amount NUMERIC(9, 2)
         );`);
     })
@@ -99,21 +99,26 @@ const seed = ({
           user_id INT NOT NULL REFERENCES users ON DELETE RESTRICT,
           type CHAR(1) NOT NULL CHECK (type IN ('D', 'W', 'B', 'S')),
           date_time TIMESTAMP NOT NULL,
-          cash_holding_id INT NOT NULL REFERENCES cash_holdings ON DELETE RESTRICT,
           share_id INT REFERENCES shares ON DELETE RESTRICT,
           portfolio_id INT REFERENCES portfolios ON DELETE RESTRICT,
           quantity NUMERIC(11, 4),
           unit_price NUMERIC(11, 4),
           total_amount NUMERIC(11, 4) NOT NULL,
-          CONSTRAINT share_id_null_for_deposit_or_withdrawal CHECK ((type = 'D' OR type = 'W') AND share_id IS NULL),
-          CONSTRAINT share_id_required_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND share_id IS NOT NULL),
-          CONSTRAINT portfolio_id_null_for_deposit_or_withdrawal CHECK ((type = 'D' OR type = 'W') AND portfolio_id IS NULL),
-          CONSTRAINT portfolio_id_required_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND portfolio_id IS NOT NULL),
-          CONSTRAINT quantity_null_for_deposit_or_withdrawal CHECK ((type = 'D' OR type = 'W') AND quantity IS NULL),
-          CONSTRAINT quantity_required_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND quantity IS NOT NULL),
-          CONSTRAINT unit_price_null_for_deposit_or_withdrawal CHECK ((type = 'D' OR type = 'W') AND unit_price IS NULL),
-          CONSTRAINT unit_price_required_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND unit_price IS NOT NULL),
-          CONSTRAINT correct_total_amount_for_buy_or_sell CHECK ((type = 'B' OR type = 'S') AND total_amount = quantity * unit_price)
+          CONSTRAINT "share_id: null for cash transaction, required for trade"
+            CHECK (((type = 'D' OR type = 'W') AND share_id IS NULL) OR
+                  ((type = 'B' OR type = 'S') AND share_id IS NOT NULL)),
+          CONSTRAINT "portfolio_id: null for cash transaction, required for trade"
+            CHECK (((type = 'D' OR type = 'W') AND portfolio_id IS NULL) OR
+                  ((type = 'B' OR type = 'S') AND portfolio_id IS NOT NULL)),
+          CONSTRAINT "quantity: null for cash transaction, required for trade"
+            CHECK (((type = 'D' OR type = 'W') AND quantity IS NULL) OR
+                  ((type = 'B' OR type = 'S') AND quantity IS NOT NULL)),
+          CONSTRAINT "unit_price: null for cash transaction, required for trade"
+            CHECK (((type = 'D' OR type = 'W') AND unit_price IS NULL) OR
+                  ((type = 'B' OR type = 'S') AND unit_price IS NOT NULL)),
+          CONSTRAINT "total_amount: must equal quantity * unit_price"
+            CHECK (((type = 'B' OR type = 'S') AND total_amount = ROUND(quantity * unit_price, 4)) OR
+                  (type = 'D' OR type = 'W'))
         )`);
     })
     .then(() => {
@@ -140,6 +145,9 @@ const seed = ({
     })
     .then(() => {
       return insertDataIntoDb(db, "portfolio_holdings", portfolioHoldingData);
+    })
+    .then(() => {
+      return insertDataIntoDb(db, "transactions", transactionData);
     });
 };
 

@@ -10,7 +10,7 @@ export default [
     sector: "Technology",
     industry: "Consumer Electronics",
   },
-  {
+  { 
     symbol: "GOOGL",
     company_name: "Alphabet Inc.",
     description:
