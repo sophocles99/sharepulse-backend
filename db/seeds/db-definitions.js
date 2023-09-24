@@ -58,44 +58,67 @@ export const createPortfolioHoldingsStr = `
 
 // transaction types as follows:
 // cash transaction: D - deposit, W - withdrawal
-// share trade: B - buy, S - sell
+// share transaction: B - buy, S - sell
 // total_amount is always a positive number
 export const createTransactionsStr = `
   CREATE TABLE transactions (
     transaction_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users ON DELETE RESTRICT,
-    type CHAR(1) NOT NULL CHECK (type IN ('D', 'W', 'B', 'S')),
+    type CHAR(1) NOT NULL,
     date_time TIMESTAMP NOT NULL,
     share_id INT REFERENCES shares ON DELETE RESTRICT,
     portfolio_id INT REFERENCES portfolios ON DELETE RESTRICT,
     quantity NUMERIC(11, 4),
     unit_price NUMERIC(11, 4),
-    total_amount NUMERIC(11, 4) NOT NULL,
-
-    CONSTRAINT "share_id: null for cash transaction, required for trade"
-      CHECK (((type = 'D' OR type = 'W') AND share_id IS NULL) OR
-        ((type = 'B' OR type = 'S') AND share_id IS NOT NULL)),
-    CONSTRAINT "portfolio_id: null for cash transaction, required for trade"
-      CHECK (((type = 'D' OR type = 'W') AND portfolio_id IS NULL) OR
-        ((type = 'B' OR type = 'S') AND portfolio_id IS NOT NULL)),
-    CONSTRAINT "quantity: null for cash transaction, required for trade"
-      CHECK (((type = 'D' OR type = 'W') AND quantity IS NULL) OR
-        ((type = 'B' OR type = 'S') AND quantity IS NOT NULL)),
-    CONSTRAINT "unit_price: null for cash transaction, required for trade"
-      CHECK (((type = 'D' OR type = 'W') AND unit_price IS NULL) OR
-        ((type = 'B' OR type = 'S') AND unit_price IS NOT NULL)),
-    CONSTRAINT "total_amount: must equal quantity * unit_price"
-      CHECK (((type = 'B' OR type = 'S') AND total_amount = ROUND(quantity * unit_price, 4)) OR
-        (type = 'D' OR type = 'W'))
+    total_amount NUMERIC(11, 4) NOT NULL
   );`;
 
 export const createTransactionTriggersStr = `
+  CREATE OR REPLACE FUNCTION check_type() RETURNS TRIGGER AS $$
+    BEGIN
+      IF NEW.type NOT IN ('D', 'W', 'B', 'S') THEN
+        RAISE EXCEPTION 'type must be ''D'', ''W'', ''B'', or ''S''';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql;
+
+  CREATE TRIGGER check_type
+    BEFORE INSERT ON transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION check_type();
+
+
+  CREATE OR REPLACE FUNCTION check_share_transaction_fields() RETURNS TRIGGER AS $$
+    BEGIN
+      IF (NEW.type = 'D' OR NEW.type = 'W') THEN
+        IF NEW.share_id IS NOT NULL THEN RAISE EXCEPTION 'share_id must be null for cash transaction'; END IF;
+        IF NEW.portfolio_id IS NOT NULL THEN RAISE EXCEPTION 'portfolio_id must be null for cash transaction'; END IF;
+        IF NEW.quantity IS NOT NULL THEN RAISE EXCEPTION 'quantity must be null for cash transaction'; END IF;
+        IF NEW.unit_price IS NOT NULL THEN RAISE EXCEPTION 'unit_price must be null for cash transaction'; END IF;
+      END IF;
+      IF (NEW.type = 'B' OR NEW.type = 'S') THEN
+        IF NEW.share_id IS NULL THEN RAISE EXCEPTION 'share_id required for share transaction'; END IF;
+        IF NEW.portfolio_id IS NULL THEN RAISE EXCEPTION 'portfolio_id required for share transaction'; END IF;
+        IF NEW.quantity IS NULL THEN RAISE EXCEPTION 'quantity required for share transaction'; END IF;
+        IF NEW.unit_price IS NULL THEN RAISE EXCEPTION 'unit_price required for share transaction'; END IF;
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql;
+
+  CREATE TRIGGER check_share_transaction_fields
+    BEFORE INSERT ON transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION check_share_transaction_fields();
+
+
   CREATE OR REPLACE FUNCTION check_user_owns_portfolio() RETURNS TRIGGER AS $$
     BEGIN
       IF (NEW.type = 'B' OR NEW.type = 'S') AND
         (SELECT COUNT(*) FROM portfolios
         WHERE portfolio_id = NEW.portfolio_id AND user_id = NEW.user_id) = 0 THEN
-        RAISE EXCEPTION 'user_id does not match portfolio_id';
+        RAISE EXCEPTION 'user_id must match portfolio_id';
       END IF;      
       RETURN NEW;
     END;
@@ -107,6 +130,21 @@ export const createTransactionTriggersStr = `
     EXECUTE FUNCTION check_user_owns_portfolio();
 
 
+  CREATE OR REPLACE FUNCTION check_total_amount() RETURNS TRIGGER AS $$
+    BEGIN
+      IF (NEW.type = 'B' OR NEW.type = 'S') AND NEW.total_amount <> ROUND(NEW.quantity * NEW.unit_price, 4) THEN
+        RAISE EXCEPTION 'incorrect total_amount';
+      END IF;
+      RETURN NEW;
+    END;
+  $$ LANGUAGE plpgsql;
+  
+  CREATE TRIGGER check_total_amount
+    BEFORE INSERT ON transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION check_total_amount();
+
+
   CREATE OR REPLACE FUNCTION update_cash_holdings() RETURNS TRIGGER AS $$
     BEGIN
       IF (NEW.type = 'D' OR NEW.type = 'S') THEN
@@ -116,9 +154,6 @@ export const createTransactionTriggersStr = `
         RETURN NEW;
       END IF;
       IF (NEW.type = 'W' OR NEW.type = 'B') THEN
-        IF (SELECT amount FROM cash_holdings WHERE user_id = NEW.user_id) - NEW.total_amount < 0 THEN
-          RAISE EXCEPTION 'insufficient funds for transaction';
-        END IF;
         UPDATE cash_holdings
         SET amount = amount - NEW.total_amount
         WHERE user_id = NEW.user_id;
@@ -129,7 +164,7 @@ export const createTransactionTriggersStr = `
   $$ LANGUAGE plpgsql;
 
   CREATE TRIGGER update_cash_holdings
-    BEFORE INSERT ON transactions
+    AFTER INSERT ON transactions
     FOR EACH ROW
     EXECUTE FUNCTION update_cash_holdings();
   `;
