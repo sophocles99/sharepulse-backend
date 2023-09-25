@@ -87,9 +87,9 @@ const seed = ({
     .then(() => {
       return insertDataIntoDb(db, "shares", shareData);
     })
-    // .then(() => {
-    //   return insertDataIntoDb(db, "portfolio_holdings", portfolioHoldingData);
-    // })
+    .then(() => {
+      return insertDataIntoDb(db, "portfolio_holdings", portfolioHoldingData);
+    })
     .then(() => {
       return insertDataIntoDb(db, "transactions", transactionData);
     });
