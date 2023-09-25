@@ -13,10 +13,10 @@ export const createProfilesStr = `
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
     birth_date DATE NOT NULL,
-    address_1 VARCHAR(255) NOT NULL,
-    address_2 VARCHAR(255) NOT NULL,
-    address_3 VARCHAR(255),
-    address_4 VARCHAR(255),
+    street_address_1 VARCHAR(255) NOT NULL,
+    street_address_2 VARCHAR(255),
+    street_address_3 VARCHAR(255),
+    post_town VARCHAR(255),
     postcode VARCHAR(8) NOT NULL
   );`;
 
