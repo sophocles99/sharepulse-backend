@@ -10,7 +10,7 @@ import {
   createTransactionsStr,
   createTransactionTriggersStr
 } from "./db-definitions.js";
-import insertDataIntoDb from "./utils/insert-data-into-db.js";
+import insertDataIntoDb from "../utils/insert-data-into-db.js";
 
 const seed = ({
   userData,
