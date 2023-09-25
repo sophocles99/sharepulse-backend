@@ -77,7 +77,8 @@ export const createTransactionTriggersStr = `
   CREATE OR REPLACE FUNCTION check_type() RETURNS TRIGGER AS $$
     BEGIN
       IF NEW.type NOT IN ('D', 'W', 'B', 'S') THEN
-        RAISE EXCEPTION 'type must be ''D'', ''W'', ''B'', or ''S''';
+        RAISE EXCEPTION 'invalid transaction type: %', NEW.type
+        USING HINT = 'type must be ''D'', ''W'', ''B'', or ''S''', ERRCODE = '39P01';
       END IF;
       RETURN NEW;
     END;
@@ -92,16 +93,24 @@ export const createTransactionTriggersStr = `
   CREATE OR REPLACE FUNCTION check_share_transaction_fields() RETURNS TRIGGER AS $$
     BEGIN
       IF (NEW.type = 'D' OR NEW.type = 'W') THEN
-        IF NEW.share_id IS NOT NULL THEN RAISE EXCEPTION 'share_id must be null for cash transaction'; END IF;
-        IF NEW.portfolio_id IS NOT NULL THEN RAISE EXCEPTION 'portfolio_id must be null for cash transaction'; END IF;
-        IF NEW.quantity IS NOT NULL THEN RAISE EXCEPTION 'quantity must be null for cash transaction'; END IF;
-        IF NEW.unit_price IS NOT NULL THEN RAISE EXCEPTION 'unit_price must be null for cash transaction'; END IF;
+        IF NEW.share_id IS NOT NULL THEN RAISE EXCEPTION 'share_id must be null for cash transaction'
+          USING ERRCODE = '39P01'; END IF;
+        IF NEW.portfolio_id IS NOT NULL THEN RAISE EXCEPTION 'portfolio_id must be null for cash transaction'
+          USING ERRCODE = '39P01'; END IF;
+        IF NEW.quantity IS NOT NULL THEN RAISE EXCEPTION 'quantity must be null for cash transaction'
+          USING ERRCODE = '39P01'; END IF;
+        IF NEW.unit_price IS NOT NULL THEN RAISE EXCEPTION 'unit_price must be null for cash transaction'
+          USING ERRCODE = '39P01'; END IF;
       END IF;
       IF (NEW.type = 'B' OR NEW.type = 'S') THEN
-        IF NEW.share_id IS NULL THEN RAISE EXCEPTION 'share_id required for share transaction'; END IF;
-        IF NEW.portfolio_id IS NULL THEN RAISE EXCEPTION 'portfolio_id required for share transaction'; END IF;
-        IF NEW.quantity IS NULL THEN RAISE EXCEPTION 'quantity required for share transaction'; END IF;
-        IF NEW.unit_price IS NULL THEN RAISE EXCEPTION 'unit_price required for share transaction'; END IF;
+        IF NEW.share_id IS NULL THEN RAISE EXCEPTION 'share_id required for share transaction'
+          USING ERRCODE = '39P01'; END IF;
+        IF NEW.portfolio_id IS NULL THEN RAISE EXCEPTION 'portfolio_id required for share transaction'
+          USING ERRCODE = '39P01'; END IF;
+        IF NEW.quantity IS NULL THEN RAISE EXCEPTION 'quantity required for share transaction'
+          USING ERRCODE = '39P01'; END IF;
+        IF NEW.unit_price IS NULL THEN RAISE EXCEPTION 'unit_price required for share transaction'
+          USING ERRCODE = '39P01'; END IF;
       END IF;
       RETURN NEW;
     END;
@@ -116,9 +125,9 @@ export const createTransactionTriggersStr = `
   CREATE OR REPLACE FUNCTION check_user_owns_portfolio() RETURNS TRIGGER AS $$
     BEGIN
       IF (NEW.type = 'B' OR NEW.type = 'S') AND
-        (SELECT COUNT(*) FROM portfolios
-        WHERE portfolio_id = NEW.portfolio_id AND user_id = NEW.user_id) = 0 THEN
-        RAISE EXCEPTION 'user_id must match portfolio_id';
+      (SELECT COUNT(*) FROM portfolios WHERE portfolio_id = NEW.portfolio_id AND user_id = NEW.user_id) = 0 THEN
+        RAISE EXCEPTION 'user_id must match owner of portfolio_id %', NEW.portfolio_id
+        USING ERRCODE = '39P01';
       END IF;      
       RETURN NEW;
     END;
@@ -133,7 +142,7 @@ export const createTransactionTriggersStr = `
   CREATE OR REPLACE FUNCTION check_total_amount() RETURNS TRIGGER AS $$
     BEGIN
       IF (NEW.type = 'B' OR NEW.type = 'S') AND NEW.total_amount <> ROUND(NEW.quantity * NEW.unit_price, 4) THEN
-        RAISE EXCEPTION 'incorrect total_amount';
+        RAISE EXCEPTION 'incorrect total_amount' USING ERRCODE = '39P01';
       END IF;
       RETURN NEW;
     END;
