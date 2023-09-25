@@ -53,7 +53,8 @@ export const createPortfolioHoldingsStr = `
     portfolio_holdings_id SERIAL PRIMARY KEY,
     portfolio_id INT REFERENCES portfolios ON DELETE RESTRICT,
     share_id INT REFERENCES shares ON DELETE RESTRICT,
-    quantity NUMERIC(11, 4)
+    quantity NUMERIC(11, 4),
+    UNIQUE (portfolio_id, share_id)
   );`;
 
 // transaction types as follows:
@@ -160,15 +161,13 @@ export const createTransactionTriggersStr = `
         UPDATE cash_holdings
         SET amount = amount + NEW.total_amount
         WHERE user_id = NEW.user_id;
-        RETURN NEW;
       END IF;
       IF (NEW.type = 'W' OR NEW.type = 'B') THEN
         UPDATE cash_holdings
         SET amount = amount - NEW.total_amount
         WHERE user_id = NEW.user_id;
-        RETURN NEW;
       END IF;
-      RAISE EXCEPTION 'bingo bongo wrong transaction type';
+      RETURN NULL;
     END;
   $$ LANGUAGE plpgsql;
 
@@ -176,4 +175,36 @@ export const createTransactionTriggersStr = `
     AFTER INSERT ON transactions
     FOR EACH ROW
     EXECUTE FUNCTION update_cash_holdings();
+
+
+  CREATE OR REPLACE FUNCTION update_portfolio_holdings() RETURNS TRIGGER AS $$
+    DECLARE
+      quantity_adjustment NUMERIC;
+    BEGIN
+      IF (NEW.type = 'B' OR NEW.type = 'S') THEN
+        CASE
+          WHEN NEW.type = 'B' THEN
+            quantity_adjustment := NEW.quantity;
+          WHEN NEW.type = 'S' THEN
+            quantity_adjustment := 0 - NEW.quantity;
+        END CASE;
+
+        IF (SELECT COUNT(*) FROM portfolio_holdings
+        WHERE portfolio_id = NEW.portfolio_id AND share_id = NEW.share_id) = 0 THEN
+          INSERT INTO portfolio_holdings (portfolio_id, share_id, quantity)
+          VALUES (NEW.portfolio_id, NEW.share_id, quantity_adjustment);
+        ELSE
+          UPDATE portfolio_holdings
+          SET quantity = quantity + quantity_adjustment
+          WHERE portfolio_id = NEW.portfolio_id AND share_id = NEW.share_id;
+        END IF;
+      END IF;
+      RETURN NULL;
+    END;
+  $$ LANGUAGE plpgsql;
+
+  CREATE TRIGGER update_portfolio_holdings
+    AFTER INSERT ON transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_portfolio_holdings();
   `;
