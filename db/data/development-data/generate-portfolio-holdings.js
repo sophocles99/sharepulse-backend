@@ -5,7 +5,7 @@ let count = 500;
 
 while (count) {
   const portfolio_id = Math.floor(Math.random() * 40) + 1;
-  const share_id = Math.floor(Math.random() * 45) + 1;
+  const share_id = Math.floor(Math.random() * 50) + 1;
   const quantity = Math.floor(Math.random() * 100000000) / 10000;
   const match = new_holdings.find(
     (record) =>
