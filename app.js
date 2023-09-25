@@ -5,4 +5,8 @@ const app = express();
 
 app.use("/api", apiRouter);
 
+app.get("/", (req, res) => {
+  res.status(200).send("Hello from the server!");
+});
+
 export default app;
