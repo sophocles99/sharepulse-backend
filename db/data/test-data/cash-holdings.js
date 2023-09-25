@@ -1,5 +1,5 @@
 export default [
-  { user_id: 1, amount: 1000 },
+  { user_id: 1, amount: 0 },
   { user_id: 2, amount: 1000 },
   { user_id: 3, amount: 2000 },
   { user_id: 4, amount: 2000 },
