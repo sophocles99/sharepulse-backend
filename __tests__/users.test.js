@@ -13,14 +13,20 @@ afterAll(() => {
   return db.end();
 });
 
-describe("Testing the testing", () => {
-  test("Say hello", () => {
+describe("Create user", () => {
+  test("201: returns msg confirming user created", () => {
+    const newUser = {
+      user: { email: "new@user.com", password: "Password123" },
+    };
     return request(app)
-      .get("/")
-      .expect(200)
-      .then(({ text }) => {
-        expect(text).toEqual("Hello from the server!");
-        console.log(text);
+      .post("/api/users/")
+      .send(newUser)
+      .expect(201)
+      .then(({ body }) => {
+        expect(body).toEqual({
+          msg: "New user created",
+          user_id: 11,
+        });
       });
   });
 });
