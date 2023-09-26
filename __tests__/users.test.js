@@ -14,7 +14,7 @@ afterAll(() => {
 });
 
 describe("Create user", () => {
-  test("201: returns msg confirming user created", () => {
+  test("201: returns new user_id", () => {
     const newUser = {
       user: { email: "new@user.com", password: "Password123" },
     };
@@ -24,9 +24,21 @@ describe("Create user", () => {
       .expect(201)
       .then(({ body }) => {
         expect(body).toEqual({
-          msg: "New user created",
           user_id: 11,
         });
+      });
+  });
+  test("400: returns error for malformed user object", () => {
+    const newUser = {
+      user: { email: "new@user.com" },
+    };
+    return request(app)
+      .post("/api/users/")
+      .send(newUser)
+      .expect(400)
+      .then(({ body }) => {
+        const { msg } = body;
+        expect(msg).toBe("Bad request");
       });
   });
 });

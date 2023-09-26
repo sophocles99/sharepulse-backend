@@ -1,5 +1,10 @@
 import express from "express";
 import apiRouter from "./routes/api-router.js";
+import {
+  handlePsqlErrors,
+  handleCustomErrors,
+  handleServerErrors,
+} from "./errors.js";
 
 const app = express();
 
@@ -14,5 +19,11 @@ app.get("/", (req, res) => {
 app.all("*", (_, res) => {
   res.status(404).send({ msg: "Not found" });
 });
+
+app.use(handlePsqlErrors);
+
+app.use(handleCustomErrors);
+
+app.use(handleServerErrors);
 
 export default app;
