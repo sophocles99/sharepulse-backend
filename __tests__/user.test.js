@@ -19,7 +19,7 @@ describe("Create user", () => {
       user: { email: "new@user.com", password: "Password123" },
     };
     return request(app)
-      .post("/api/users/")
+      .post("/api/user/register")
       .send(newUser)
       .expect(201)
       .then(({ body }) => {
@@ -33,7 +33,7 @@ describe("Create user", () => {
       user: { email: "new@user.com" },
     };
     return request(app)
-      .post("/api/users/")
+      .post("/api/user/register")
       .send(newUser)
       .expect(400)
       .then(({ body }) => {

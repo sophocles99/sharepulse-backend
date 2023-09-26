@@ -1,6 +1,6 @@
-import { insertUser } from "../models/users.model.js";
+import { insertUser } from "../models/user.model.js";
 
-const postUser = (req, res, next) => {
+const registerUser = (req, res, next) => {
   const { user } = req.body;
   insertUser(user)
     .then((user_id) => {
@@ -9,4 +9,4 @@ const postUser = (req, res, next) => {
     .catch(next);
 };
 
-export { postUser };
+export { registerUser };
