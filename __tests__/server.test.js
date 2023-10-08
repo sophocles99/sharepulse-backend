@@ -11,13 +11,13 @@ describe("Server tests", () => {
         expect(msg).toBe("Server listening");
       });
   });
-  test("404: returns msg for unknown endpoint", () => {
+  test("404: returns msg for unknown route", () => {
     return request(app)
       .get("/api/nonexistent")
       .expect(404)
       .then(({ body }) => {
         const { msg } = body;
-        expect(msg).toBe("Not found");
+        expect(msg).toBe("Route not found");
       });
   });
 });

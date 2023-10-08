@@ -2,7 +2,7 @@ export const createUsersStr = `
   CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
     email VARCHAR(254) NOT NULL UNIQUE,
-    password VARCHAR NOT NULL,
+    password VARCHAR(60) NOT NULL,
     last_login TIMESTAMP DEFAULT NULL
   )`;
 

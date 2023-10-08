@@ -3,6 +3,6 @@ import userRouter from "./user-router.js";
 
 const apiRouter = Router();
 
-apiRouter.use("/user", userRouter);
+apiRouter.use("/users", userRouter);
 
 export default apiRouter;

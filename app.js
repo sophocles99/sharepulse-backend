@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
 });
 
 app.all("*", (_, res) => {
-  res.status(404).send({ msg: "Not found" });
+  res.status(404).send({ msg: "Route not found" });
 });
 
 app.use(handlePsqlErrors);
