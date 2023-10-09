@@ -13,7 +13,7 @@ afterAll(() => {
   return db.end();
 });
 
-describe("Create user", () => {
+describe("Register user", () => {
   test("201: returns new user_id", () => {
     const newUser = {
       user: { email: "new@user.com", password: "Password123" },
@@ -84,6 +84,22 @@ describe("Create user", () => {
       .then(({ body }) => {
         const { msg } = body;
         expect(msg).toBe("Email already in use");
+      });
+  });
+});
+
+describe.only("Login user", () => {
+  test("200: returns successful login message", () => {
+    const login = {
+      user: { email: "eldridge.treutel@gmail.com", password: "Eldridge121" },
+    };
+    return request(app)
+      .post("/api/users/login")
+      .send(login)
+      .expect(200)
+      .then(({ body }) => {
+        const { msg } = body;
+        expect(msg).toBe("Logged in");
       });
   });
 });

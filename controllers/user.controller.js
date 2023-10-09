@@ -1,5 +1,5 @@
-import { insertUser } from "../models/user.model.js";
-import validateUser from "../validation/validate-user.js";
+import { authenticateUser, createUser } from "../models/user.model.js";
+import { validateLogin, validateUser } from "../validation/user.validate.js";
 
 const registerUser = (req, res, next) => {
   const { user } = req.body;
@@ -11,7 +11,7 @@ const registerUser = (req, res, next) => {
     return res.status(400).send({ msg: "Bad request", details });
   }
 
-  insertUser(user)
+  createUser(user)
     .then((user_id) => {
       res.status(201).send({ msg: "User successfully registered", user_id });
     })
@@ -24,7 +24,22 @@ const registerUser = (req, res, next) => {
 
 const loginUser = (req, res, next) => {
   const { user } = req.body;
-  signInUser(user);
+  if (!user) return res.status(400).send({ msg: "Bad request" });
+
+  const { error } = validateLogin(user);
+  if (error) {
+    let details = error.details[0].message.replaceAll('"', "'");
+    return res.status(400).send({ msg: "Bad request", details });
+  }
+
+  authenticateUser(user)
+    .then((isLoggedIn) => {
+      if (isLoggedIn) {
+        return res.status(200).send({ msg: "Logged in" });
+      }
+      res.status(400).send({ msg: "Invalid email or password" });
+    })
+    .catch(next);
 };
 
 export { loginUser, registerUser };

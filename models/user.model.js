@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import db from "../db/connection.js";
 
-const insertUser = (user) => {
+const createUser = (user) => {
   const { email, password } = user;
   return bcrypt
     .hash(password, 12)
@@ -17,4 +17,18 @@ const insertUser = (user) => {
     .then(({ rows }) => rows[0].user_id);
 };
 
-export { insertUser };
+const authenticateUser = (user) => {
+  const { email, password } = user;
+  return db
+    .query(
+      `SELECT password FROM users
+      WHERE email = $1;`,
+      [email]
+    )
+    .then(({ rows }) => {
+      if (rows.length === 0) return false;
+      return bcrypt.compare(password, rows[0].password);
+    });
+};
+
+export { authenticateUser, createUser };

@@ -3,7 +3,7 @@ import { joiPasswordExtendCore } from "joi-password";
 
 const JoiPassword = Joi.extend(joiPasswordExtendCore);
 
-export default (user) => {
+const validateUser = (user) => {
   const schema = Joi.object({
     email: Joi.string().required().min(5).max(254).email(),
     password: JoiPassword.string()
@@ -17,3 +17,13 @@ export default (user) => {
   });
   return schema.validate(user);
 };
+
+const validateLogin = (user) => {
+  const schema = Joi.object({
+    email: Joi.string().required().email(),
+    password: Joi.string().required(),
+  });
+  return schema.validate(user);
+};
+
+export { validateUser, validateLogin };
