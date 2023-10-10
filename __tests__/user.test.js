@@ -1,5 +1,5 @@
+import jwt from "jsonwebtoken";
 import request from "supertest";
-
 
 import app from "../app.js";
 import db from "../db/connection.js";
@@ -90,7 +90,7 @@ describe("Register user", () => {
 });
 
 describe("Login user", () => {
-  test.only("200: returns successful login message", () => {
+  test("200: returns successful login message", () => {
     const login = {
       user: { email: "eldridge.treutel@gmail.com", password: "Eldridge121" },
     };
@@ -103,7 +103,7 @@ describe("Login user", () => {
         expect(msg).toBe("Logged in");
       });
   });
-  test("200: returns valid JWT containing user ID and expiry time", () => {
+  test("200: returns valid JWT containing user ID", () => {
     const login = {
       user: { email: "eldridge.treutel@gmail.com", password: "Eldridge121" },
     };
@@ -113,7 +113,8 @@ describe("Login user", () => {
       .expect(200)
       .then(({ body }) => {
         const { token } = body;
-        expect(msg).toBe("Logged in");
+        const { user_id } = jwt.verify(token, process.env.JWT_SECRET);
+        expect(user_id).toBe(1);
       });
   });
 });

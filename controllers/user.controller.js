@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import { authenticateUser, createUser } from "../models/user.model.js";
 import { validateLogin, validateUser } from "../validation/user.validate.js";
 
@@ -33,9 +34,13 @@ const loginUser = (req, res, next) => {
   }
 
   authenticateUser(user)
-    .then((isLoggedIn) => {
-      if (isLoggedIn) {
-        return res.status(200).send({ msg: "Logged in" });
+    .then((loggedInUser) => {
+      if (loggedInUser) {
+        const token = jwt.sign(
+          { user_id: loggedInUser.user_id },
+          process.env.JWT_SECRET
+        );
+        return res.status(200).send({ msg: "Logged in", token });
       }
       res.status(400).send({ msg: "Invalid email or password" });
     })

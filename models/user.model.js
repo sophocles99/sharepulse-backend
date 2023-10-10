@@ -21,13 +21,16 @@ const authenticateUser = (user) => {
   const { email, password } = user;
   return db
     .query(
-      `SELECT password FROM users
+      `SELECT * FROM users
       WHERE email = $1;`,
       [email]
     )
     .then(({ rows }) => {
       if (rows.length === 0) return false;
-      return bcrypt.compare(password, rows[0].password);
+      const retrievedUser = rows[0];
+      const isAuthenticated = bcrypt.compare(password, retrievedUser.password);
+      if (isAuthenticated) return retrievedUser;
+      return false;
     });
 };
 
