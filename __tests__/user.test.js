@@ -1,5 +1,6 @@
 import request from "supertest";
 
+
 import app from "../app.js";
 import db from "../db/connection.js";
 import seed from "../db/seeds/seed.js";
@@ -88,8 +89,8 @@ describe("Register user", () => {
   });
 });
 
-describe.only("Login user", () => {
-  test("200: returns successful login message", () => {
+describe("Login user", () => {
+  test.only("200: returns successful login message", () => {
     const login = {
       user: { email: "eldridge.treutel@gmail.com", password: "Eldridge121" },
     };
@@ -99,6 +100,19 @@ describe.only("Login user", () => {
       .expect(200)
       .then(({ body }) => {
         const { msg } = body;
+        expect(msg).toBe("Logged in");
+      });
+  });
+  test("200: returns valid JWT containing user ID and expiry time", () => {
+    const login = {
+      user: { email: "eldridge.treutel@gmail.com", password: "Eldridge121" },
+    };
+    return request(app)
+      .post("/api/users/login")
+      .send(login)
+      .expect(200)
+      .then(({ body }) => {
+        const { token } = body;
         expect(msg).toBe("Logged in");
       });
   });

@@ -1,12 +1,13 @@
 import pg from "pg";
+import { config } from "dotenv";
+import { fileURLToPath } from "url";
+
 const { Pool } = pg;
 
-import dotenv from "dotenv";
-import {fileURLToPath} from 'url';
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const ENV = process.env.NODE_ENV || "development";
-dotenv.config({
+
+config({
   path: `${__dirname}../.env.${ENV}`,
 });
 
